@@ -2,15 +2,36 @@ body{
 	font-family: Verdana;
 	margin: 1rem;
 }
-#log {
+#log-container{
 	border: 1px solid black;
 	width: 50%;
 	margin: 2rem;
 	bottom: 3rem;
-	right: 0;
+	right: 0rem;
 	top: 3rem;
 	position : absolute;
-	overflow: auto;
+	overflow: hidden;
+}
+#msg-log{
+	border: 1px solid black;
+	margin: 2rem;
+	overflow: scroll;
+	width: 50%;
+	bottom: 0px;
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	width: 30rem;
+}
+#log {
+	border: 1px solid black;
+	margin: 2rem;
+	overflow: scroll;
+	left: 32rem;
+	bottom: 0px;
+	position: absolute;
+	right: 0px;
+	top: 0px;
 }
 #log span {
 	font-size: 15px;

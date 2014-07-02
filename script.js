@@ -1,11 +1,10 @@
 
-
 	var connection, uid, user_id, channel,
 		meta_channel, socket_url = "ws://8.19.240.170:80/ws",
 		connectButton, identifyButton, setButton, setKeyValButton, subscribeButton, 
 		metaSubButton, messageButton, restartButton, execButton, clear, 
 		infoButton, ul, chatMsg, $el = $('body'),
-		secondUser, meta_sub_to_user_id, meta_sub_to_key;
+		secondUser, meta_sub_to_user_id, meta_sub_to_key, globalResolve;
 
 	init();
 
@@ -20,16 +19,16 @@
 			messageButton = $el.find('#message'),
 			restartButton = $el.find('#restart'),
 			execButton = $el.find('#exec'),
-			clear = $el.find('#clear'),
+			clear = $el.find('.clear'),
 			infoButton = $el.find('#info'),
-			chatMsg = $el.find('#log .bottom ul');
-			ul = $el.find('#log .top ul'),
+			chatMsg = $el.find('#msg-log ul');
+			ul = $el.find('#log ul'),
 			
 		//connectButton.click(connectClickHandler);
-		//identifyButton.click(identifyClickHandler);
+		identifyButton.click(identifyClickHandler);
 		setButton.click(setClickHandler);
 		setKeyValButton.click(setKeyValClickHandler);
-		//subscribeButton.click(subscribeClickHandler);
+		subscribeButton.click(subscribeClickHandler);
 		metaSubButton.click(metaSubClickHandler);
 		messageButton.click(messageClickHandler);
 		restartButton.click(restartClickHandler);
@@ -37,51 +36,72 @@
 		clear.click(clearClickHandler);
 		infoButton.click(infoClickHandler);
 
-		$('#log .bottom ul').on('click', '.second-user', chatWithSecondUserHandler);
+		$('#msg-log ul').on('click', '.second-user', chatWithSecondUserHandler);
 
 	}
 
+	connectPromise();
 
 	function connectPromise(){
 		return new Promise(function  (resolve, reject) {
+
 			var soc = new WebSocket(socket_url);
 
+			connection = soc;
+
 			soc.onopen = function () {
-				identifyButton.removeAttr('disabled');
-				subscribeButton.removeAttr('disabled');
-				setButton.removeAttr('disabled');
-				setKeyValButton.removeAttr('disabled');
-				messageButton.removeAttr('disabled');
+
+				//identifyButton.removeAttr('disabled');
+				//subscribeButton.removeAttr('disabled');
+				//setButton.removeAttr('disabled');
+				//setKeyValButton.removeAttr('disabled');
+				//messageButton.removeAttr('disabled');
+				Log("Connected to manatee !");
 				resolve(soc);
 			};
 			
 			// Log errors
 			soc.onerror = function (error) {
 			  console.log('WebSocket Error ');
-			  connectionRestart();
+			  connectPromise();
 			};
 
 			// Log messages from the server
 			soc.onmessage = function (e) {
-			  console.log('Server: ' + e.data);
+			
+			  if(globalResolve){
+					globalResolve();
+					globalResolve = "";
+				}
 			  processData(e.data);
 			  Log(e.data);
 			};
 			soc.onclose = function(){
-				alert('web socket close');
-				connectionRestart();
-			};
-			soc.sendMessage = function  (val) {
-				soc.send(JSON.stringify(val));
+				console.log('im closing');
+				console.log(connection);
+				connectPromise();
 			};
 			
-		}).then(function  (connection) {
-		
+		}).then(function () {
+			identifyPromise(connection);
+
+		});
+	}
+
+	function identifyPromise(){
+
+		return new Promise(function  (resolve, reject) {
 			Log("--");
 			
 			user_id = $.trim($('#user').val());
 			
 			var session_id = $.trim($('#session_id').val());
+
+			if(!session_id){
+				identifyButton.removeAttr('disabled');
+				reject(connection);
+				return;
+			}
 			
 			var ping = { 
 			  	"command" : "identify",
@@ -96,91 +116,126 @@
 			 if(session_id.length > 0){
 			 	ping.params.sessionid  = session_id;
 			 }
-			connection.sendMessage(ping);
+			 
+			connection.send(JSON.stringify(ping));
 			
-			Log("Identified");
-			return connection;
-
-		})
+			globalResolve = function(){
+				resolve(connection);
+				Log("Identified");
+			};
+			
+		}).then(function () {
+			identifyButton.attr('disabled', 'disabled');
+			subscribePromise();
+		});
 	}
 
-	var p2 = new Promise(function  (resolve, reject) {
-		
-	});
-	/*
-	p1.then(function  (connection) {
-		Log("--");
+	function subscribePromise () {
+		return new Promise(function  (resolve, reject) {
 
-		channel = $('#channel').val();
+			channel = $('#channel').val();
 
-		var flag = $('input[name="flag"]:checked').val();
+			var flag = $('input[name="flag"]:checked').val();
 
-		var subscribe = {
-		    "command": "sub",
-	        "params": {
-	        	"subs": [
-	            	{
-	            		"create_when_dne": false,
-            			"overwrite_params": false,
-					    "sub": channel
-					}
-	        	]
-	    	}
-	    };
-
-	    if(user_id.length > 0){
-			subscribe.params.subs.push({"sub"  : "user:" + user_id});
-		}
-
-	    connection.send(JSON.stringify(subscribe));
-
-	    Log("Subscribed to " + channel);
-
-	    return connection;
-
-	    //
-
-	    //alert('subscribing now ');
-	}).then(function  (connection) {
-		Log("--");
-		var set = {
-		    "command": "set",
-		    "params": {
-		    	"sub" : channel,
-		        "keyvals": [
-		        	{
-		            	"key": "publishers",
-		            	"value": "global",
-		            	"writeable" : true
-		        	},
-		        	{
-		        		"key" : "u2u_chat",
-		        		"value" : [
-		        			/* this is the format 
-		        			{
-		        				"chat_channel" : "1",
-		        				"user_1" : "2",
-		        				"user_2" : "3"
-		        			}
-		        			*//*
-		        		]
-		        	}
-		        ]
+			if(!channel){
+				subscribeButton.removeAttr('disabled');
+				reject(connection);
+				return;
 			}
-		};
 
-		connection.send(JSON.stringify(set));
+			Log("--");
 
-		Log("Set publishers and meta sub");
-	});
-	*/
+			var subscribe = {
+			    "command": "sub",
+		        "params": {
+		        	"subs": [
+		            	{
+		            		"create_when_dne": false,
+	            			"overwrite_params": false,
+						    "sub": channel
+						}
+		        	]
+		    	}
+		    };
+
+		    if(user_id.length > 0){
+				subscribe.params.subs.push({"sub"  : "user:" + user_id});
+			}
+
+		    connection.send(JSON.stringify(subscribe));
+
+		    globalResolve = function(){
+				resolve(connection);
+				Log("Subscribed to " + channel);
+			};
+			
+		}).then(function  () {
+			setAndMetaSubPromise();
+		});
+	}
+	function setAndMetaSubPromise(){
+		return new Promise(function (resolve, reject) {
+			
+			Log("--");
+			var set = {
+			    "command": "set",
+			    "params": {
+			    	"sub" : channel,
+			        "keyvals": [
+			        	{
+			            	"key": "publishers",
+			            	"value": "global",
+			            	"writeable" : true
+			        	},
+			        	{
+			        		"key" : "u2u_chat",
+			        		"value" : [
+			        			/* this is the format 
+			        			{
+			        				"chat_channel" : "1",
+			        				"user_1" : "2",
+			        				"user_2" : "3"
+			        			}
+			        			*/
+			        		]
+			        	}
+			        ]
+				}
+			};
+
+			connection.send(JSON.stringify(set));
+
+			globalResolve = function(){
+				
+			    resolve(connection);
+			};
+			
+		}).then(function  () {
+			var meta_sub = {
+			    "command": "meta_sub",
+			    "params": {
+			        "type": "sub_keys",
+			        "sub_keys": [
+			            {
+			                "sub": channel,
+			                "keys": ["u2u_chat"]
+			            }
+			        ]
+			    }
+			};
+
+			connection.send(JSON.stringify(meta_sub));
+
+			Log("Meta sub'ed");
+		});
+	}
+
+	function identifyClickHandler () {
+		identifyPromise();
+	}
+
 	function subscribeClickHandler(callback) {
-		Log("--");
-
-		channel = $('#channel').val();
-
-		subscribe(channel);
-		
+		subscribePromise();
 	}
 
 	function setClickHandler(callback) {
@@ -216,7 +271,6 @@
 		Log("Set publishers and meta sub");
 
 		if(callback && typeof(callback) === 'function'){
-			console.log(callback);
 			callback();
 		}
 
@@ -246,7 +300,6 @@
 		Log("Set publishers and meta sub");
 
 		if(callback && typeof(callback) === 'function'){
-			console.log(callback);
 			callback();
 		}
 	}
@@ -281,10 +334,9 @@
 
 		connection.send(JSON.stringify(meta_sub));
 
-	    Log("Meta sub to " + meta_sub_to_user_id + "'s " + meta_sub_to_key);
+	    Log("Meta sub'ed to ");
 
 	    if(callback && typeof(callback) === 'function'){
-			console.log(callback);
 			callback();
 		}
 	}
@@ -319,7 +371,6 @@
 		Log("Messaged : " + msg + " to channel " + channel);
 
 		if(callback && typeof(callback) === 'function'){
-			console.log(callback);
 			callback();
 		}
 	}
@@ -359,7 +410,6 @@
 		Log("list of users requested");
 
 		if(callback && typeof(callback) === 'function'){
-			console.log(callback);
 			callback();
 		}
 
@@ -415,10 +465,8 @@
 
 	    Log("Subscribed to " + channel);
 
-	    alert('subscribing now ');
-
 	    if(callback && typeof(callback) === 'function'){
-			console.log(callback);
+			
 			callback();
 		}
 
@@ -478,7 +526,7 @@
 				}
 				break;
 			case 'sub':
-				if(data.type == 'success' && data.success[0].params.u2u_chat){
+				if(data.type == 'success' && data.success[0].params.u2u_chat && data.success[0].params.u2u_chat.length > 0){
 					metaSubButton.removeAttr('disabled');
 					meta_sub_to_user_id = data.success[0].params.u2u_chat[0].userid;
 					meta_sub_to_key = data.success[0].params.u2u_chat[0].key;
@@ -491,54 +539,9 @@
 
 		connection = null;
 
-		return;
-
-
-		//alert('conenction will restart now ');
-		$.when(
-	        connectClickHandler()
-	    ).then(function(data){
-	        return $.when(
-	            identifyClickHandler()
-	        );
-	    }).then(function(data3){
-	        return subscribeClickHandler();
-	    });
 	}
 
 	function Log (msg) {
 		var $li = $('<li>' + msg + '</li>');
 		ul.append($li);
-	}
-
-	function subscribe_promise(channel, callback){
-
-		var subscribe = {
-		    "command": "sub",
-	        "params": {
-	        	"subs": [
-	            	{
-	            		"create_when_dne": false,
-            			"overwrite_params": false,
-					    "sub": channel
-					}
-	        	]
-	    	}
-	    };
-
-	    if(user_id.length > 0){
-			subscribe.params.subs.push({"sub"  : "user:" + user_id});
-		}
-
-	    connection.send(JSON.stringify(subscribe));
-
-	    Log("Subscribed to " + channel);
-
-	    alert('subscribing now ');
-
-	    if(callback && typeof(callback) === 'function'){
-			console.log(callback);
-			callback();
-		}
-
 	}
