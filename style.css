@@ -1,0 +1,28 @@
+body{
+	font-family: Verdana;
+	margin: 1rem;
+}
+#log {
+	border: 1px solid black;
+	width: 50%;
+	margin: 2rem;
+	bottom: 3rem;
+	right: 0;
+	top: 3rem;
+	position : absolute;
+	overflow: auto;
+}
+#log span {
+	font-size: 15px;
+	margin: 0px 5px;
+}
+#log ul{
+	list-style-type: none;
+}
+#log li {
+	margin: 0rem 1rem;
+	border-bottom: 1px solid lightgray;
+}
+li span.second-user{
+	font-weight: bold;
+}
