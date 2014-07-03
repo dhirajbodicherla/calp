@@ -4,7 +4,8 @@
 		connectButton, identifyButton, setButton, setKeyValButton, subscribeButton, 
 		metaSubButton, messageButton, restartButton, execButton, clear, 
 		infoButton, ul, chatMsg, $el = $('body'),
-		secondUser, meta_sub_to_user_id, meta_sub_to_key, globalResolve;
+		secondUser, meta_sub_to_user_id, meta_sub_to_key, globalResolve, isOwner = false,
+		pvtMsgButton;
 
 	init();
 
@@ -21,8 +22,9 @@
 			execButton = $el.find('#exec'),
 			clear = $el.find('.clear'),
 			infoButton = $el.find('#info'),
-			chatMsg = $el.find('#msg-log ul');
+			chatMsg = $el.find('#msg-log ul'),
 			ul = $el.find('#log ul'),
+			pvtMsgButton = $el.find('#pvt_message_btn');
 			
 		//connectButton.click(connectClickHandler);
 		identifyButton.click(identifyClickHandler);
@@ -35,6 +37,7 @@
 		execButton.click(execClickHandler);
 		clear.click(clearClickHandler);
 		infoButton.click(infoClickHandler);
+		pvtMsgButton.click(pvtMsgClickHandler);
 
 		$('#msg-log ul').on('click', '.second-user', chatWithSecondUserHandler);
 
@@ -174,41 +177,50 @@
 		});
 	}
 	function setAndMetaSubPromise(){
+		/* fix */
+
+		/* don't set values if you receive values after subscription */
+
 		return new Promise(function (resolve, reject) {
-			
-			Log("--");
-			var set = {
-			    "command": "set",
-			    "params": {
-			    	"sub" : channel,
-			        "keyvals": [
-			        	{
-			            	"key": "publishers",
-			            	"value": "global",
-			            	"writeable" : true
-			        	},
-			        	{
-			        		"key" : "u2u_chat",
-			        		"value" : [
-			        			/* this is the format 
-			        			{
-			        				"chat_channel" : "1",
-			        				"user_1" : "2",
-			        				"user_2" : "3"
-			        			}
-			        			*/
-			        		]
-			        	}
-			        ]
-				}
-			};
 
-			connection.send(JSON.stringify(set));
+			if(!isOwner){
+				resolve(connection);
+				Log('will not set global value for channel #notOwner');
+			}else{
+				Log("--");
+				var set = {
+				    "command": "set",
+				    "params": {
+				    	"sub" : channel,
+				        "keyvals": [
+				        	{
+				            	"key": "publishers",
+				            	"value": "global",
+				            	"writeable" : true
+				        	},
+				        	{
+				        		"key" : "u2u_chat",
+				        		"value" : [
+				        			/* this is the format 
+				        			{
+				        				"chat_channel" : "1",
+				        				"user_1" : "2",
+				        				"user_2" : "3"
+				        			}
+				        			*/
+				        		]
+				        	}
+				        ]
+					}
+				};
 
-			globalResolve = function(){
-				
-			    resolve(connection);
-			};
+				connection.send(JSON.stringify(set));
+
+				globalResolve = function(){
+				    resolve(connection);
+				    Log('setting global value for channel');
+				};
+			}
 			
 		}).then(function  () {
 			var meta_sub = {
@@ -375,6 +387,31 @@
 		}
 	}
 
+	function pvtMsgClickHandler(){
+
+		Log("--");
+
+		var msg = $('#pvt_msg').val();
+
+		var message = {
+		    "command": "pub",
+		    "params": {
+		        "type": "data",
+		        "value": msg,
+		        "subs": [
+		            {
+		                "type": "sub",
+		                "name": pvtChannel
+		            }
+		        ]
+		    }
+		};
+
+		connection.send(JSON.stringify(message));
+
+		Log("Messaged : " + msg + " to channel " + pvtChannel);
+	}
+
 	function infoClickHandler(callback) {
 		/*
 		var info = {
@@ -437,12 +474,12 @@
 	function clearClickHandler (e) {
 		e.preventDefault();
 
-		ul.empty();
+		$(this).parent().siblings('ul').empty();
 	}
 
 	function subscribe(channel, callback){
 
-		var flag = $('input[name="flag"]:checked').val();
+		//var flag = $('input[name="flag"]:checked').val();
 
 		var subscribe = {
 		    "command": "sub",
@@ -457,43 +494,112 @@
 	    	}
 	    };
 
-	    if(user_id.length > 0){
-			subscribe.params.subs.push({"sub"  : "user:" + user_id});
-		}
-
 	    connection.send(JSON.stringify(subscribe));
 
 	    Log("Subscribed to " + channel);
-
-	    if(callback && typeof(callback) === 'function'){
-			
-			callback();
-		}
-
 	}
 
 	function chatWithSecondUserHandler (e) {
 		var user2_id = $(this).text();
 		$('#msgto').val(user2_id);
 
-		var subscribe = {
-		    "command": "sub",
-	        "params": {
-	        	"subs": [
-	            	{
-					    "sub": "user1:" + user_id + "-user2:" + user2_id,
-					}
-	        	]
-	    	},
-	    	"blackbox": {
-	    		"sub" : "user1:" + user_id + "-user2:" + user2_id,
-	    		"userid" : user2_id
-	    	}
-	    };
+		pvtChannel = "user1:" + user_id + "-user2:" + user2_id;
+		pvtChatSubscribePromise(pvtChannel, user2_id);
 
-	    connection.send(JSON.stringify(subscribe));
+	}
 
-	   $('#msg').val('');
+	function pvtChatSubscribePromise(pvtChannel, user2_id){
+		return new Promise(function (resolve, reject) {
+			Log("--");
+
+			var subscribe = {
+			    "command": "sub",
+		        "params": {
+		        	"subs": [
+		            	{
+		            		"create_when_dne": false,
+	            			"overwrite_params": false,
+						    "sub": pvtChannel
+						}
+		        	]
+		    	}
+		    };
+
+		    connection.send(JSON.stringify(subscribe));
+
+		    globalResolve = function(){
+				resolve(connection);
+				Log("Subscribed to pvt channel " + pvtChannel);
+			};		
+		}).then(function  (data) {
+			// update the u2u_chat in sub params
+			setGlobalPvtChannelKeys(pvtChannel, user2_id);
+
+		});
+	}
+
+	function setGlobalPvtChannelKeys (pvtChannel, user2_id) {
+		return new Promise(function (resolve, reject) {
+
+			Log("--");
+			var set = {
+			    "command": "set",
+			    "params": {
+			    	"sub" : pvtChannel,
+			        "keyvals": [
+			        	{
+			            	"key": "publishers",
+			            	"value": [
+			            		{
+			            			"type": "userid",
+			            			"name": user_id
+			            		},
+			            		{
+			            			"type": "userid",
+			            			"name": user2_id
+			            		}
+			            	],
+			            	"writeable" : true
+			        	}
+			        	
+			        ]
+				}
+			};
+
+			connection.send(JSON.stringify(set));
+
+			globalResolve = function  () {
+				resolve(connection);
+				Log('setting pvt channel publishers');
+			};
+			
+		}).then(function (data) {
+
+			Log("--");
+			var set = {
+			    "command": "set",
+			    "params": {
+			    	"sub" : channel,
+			        "keyvals": [
+			        	{
+			        		"key" : "u2u_chat",
+			        		"value" : [
+			        			{
+			        				"chat_channel" : pvtChannel,
+			        				"user_1" : user_id,
+			        				"user_2" : user2_id
+			        			}
+			        		]
+			        	}
+			        	
+			        ]
+				}
+			};
+
+			connection.send(JSON.stringify(set));
+			Log('updating global channel with new pvt chat users value');
+			
+		});
 	}
 
 	function processData(data) {
@@ -517,7 +623,8 @@
 					$.each(chat_key_val, function  (key, val) {
 						if( val.user_1 == user_id || val.user_2 == user_id){
 
-							subscribe_promise(channel);
+							console.log('will sub to ' + val.chat_channel)
+							subscribe(val.chat_channel);
 
 							return;
 						}
@@ -526,10 +633,16 @@
 				}
 				break;
 			case 'sub':
-				if(data.type == 'success' && data.success[0].params.u2u_chat && data.success[0].params.u2u_chat.length > 0){
-					metaSubButton.removeAttr('disabled');
-					meta_sub_to_user_id = data.success[0].params.u2u_chat[0].userid;
-					meta_sub_to_key = data.success[0].params.u2u_chat[0].key;
+				if(data.type == 'success' && data.success[0].params.u2u_chat){
+					if(data.success[0].params.u2u_chat.length > 0){
+						metaSubButton.removeAttr('disabled');
+						meta_sub_to_user_id = data.success[0].params.u2u_chat[0].userid;
+						meta_sub_to_key = data.success[0].params.u2u_chat[0].key;
+					}
+					isOwner = false;
+				}
+				else{
+					isOwner = true;
 				}
 				break;
 		}
