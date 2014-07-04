@@ -1,27 +1,85 @@
 body{
-	font-family: Verdana;
 	margin: 1rem;
+	font-family: 'Gotham SSm A', 'Gotham SSm B', sans-serif;
 }
 #log-container{
-	border: 1px solid black;
-	width: 50%;
+	width: 98%;
 	margin: 2rem;
-	bottom: 3rem;
+	bottom: 0rem;
 	right: 0rem;
-	top: 3rem;
-	position : absolute;
-	overflow: hidden;
+	position : fixed;
+	overflow-y: hidden;
+	overflow-x: scroll;
 }
+
+#log-container .heading{
+	font-size: 16px;
+	background: #ff643b;
+	color: #1e2026;
+}
+#log-container .heading .clear {
+	float: right;
+}
+#log-container li {
+	margin: 0rem 0.4rem;
+	margin-left: -30px;
+	border-bottom: 1px solid lightgray;
+}
+.log-instance{
+	width: 40rem;
+	display: inline-block;
+	background: #f1f2f4;
+	border: 1px solid #5a6171;
+	vertical-align: bottom;
+	max-height: 40rem;
+}
+.log-instance ul {
+	overflow: scroll;
+	max-height: 40rem;
+	/*
+	position: absolute;
+	bottom: 25px;
+	top: 25px;
+	border: none;
+	width: 100%;
+	*/
+}
+.log-instance input {
+	width: 100%;
+	bottom: 0;
+	padding: 6px;
+	border: none;
+	outline: none;
+
+}
+#pvt-log{
+	visibility: hidden;
+}
+
+/*
 #msg-log{
 	border: 1px solid black;
 	margin: 2rem;
-	overflow: scroll;
 	width: 50%;
 	bottom: 0px;
 	position: absolute;
 	left: 0px;
 	top: 0px;
 	width: 30rem;
+}
+#msg-log input {
+	width: 100%;
+	position: absolute;
+	bottom: 0;
+	padding: 6px;
+}
+#msg-log ul {
+	overflow: scroll;
+	position: absolute;
+	bottom: 25px;
+	top: 25px;
+	border: none;
+	width: 100%;
 }
 #log {
 	border: 1px solid black;
@@ -32,18 +90,25 @@ body{
 	position: absolute;
 	right: 0px;
 	top: 0px;
+	display: none;
 }
 #log span {
 	font-size: 15px;
 	margin: 0px 5px;
 }
-#log ul{
+*/
+ul{
 	list-style-type: none;
 }
-#log li {
-	margin: 0rem 1rem;
-	border-bottom: 1px solid lightgray;
+li.active{
+	font-weight: bold;
 }
+
 li span.second-user{
 	font-weight: bold;
+	margin-right: 0.5rem;
+}
+li span.second-user:hover{
+	cursor: hand;
+	cursor: pointer;
 }

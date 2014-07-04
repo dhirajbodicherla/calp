@@ -5,26 +5,27 @@
 		metaSubButton, messageButton, restartButton, execButton, clear, 
 		infoButton, ul, chatMsg, $el = $('body'),
 		secondUser, meta_sub_to_user_id, meta_sub_to_key, globalResolve, isOwner = false,
-		pvtMsgButton;
+		pvtMsgButton, pvtChannel;
 
 	init();
 
 	function init(){
 
 		connectButton = $el.find('#connection'),
-			identifyButton = $el.find('#identify'),
-			setButton = $el.find('#set'),
-			setKeyValButton = $el.find('#set_key_val'),
-			subscribeButton = $el.find('#subscribe'),
-			metaSubButton = $el.find('#meta_sub'),
-			messageButton = $el.find('#message'),
-			restartButton = $el.find('#restart'),
-			execButton = $el.find('#exec'),
-			clear = $el.find('.clear'),
-			infoButton = $el.find('#info'),
-			chatMsg = $el.find('#msg-log ul'),
-			ul = $el.find('#log ul'),
-			pvtMsgButton = $el.find('#pvt_message_btn');
+		identifyButton = $el.find('#identify'),
+		setButton = $el.find('#set'),
+		setKeyValButton = $el.find('#set_key_val'),
+		subscribeButton = $el.find('#subscribe'),
+		metaSubButton = $el.find('#meta_sub'),
+		messageButton = $el.find('#message'),
+		restartButton = $el.find('#restart'),
+		execButton = $el.find('#exec'),
+		clear = $el.find('.clear'),
+		infoButton = $el.find('#info'),
+		chatMsg = $el.find('#msg-log ul'),
+		pvtChatMsg = $el.find('#pvt-log ul'),
+		ul = $el.find('#log ul'),
+		pvtMsgButton = $el.find('#pvt_message_btn');
 			
 		//connectButton.click(connectClickHandler);
 		identifyButton.click(identifyClickHandler);
@@ -32,14 +33,32 @@
 		setKeyValButton.click(setKeyValClickHandler);
 		subscribeButton.click(subscribeClickHandler);
 		metaSubButton.click(metaSubClickHandler);
-		messageButton.click(messageClickHandler);
+		//messageButton.click(messageClickHandler);
 		restartButton.click(restartClickHandler);
 		execButton.click(execClickHandler);
 		clear.click(clearClickHandler);
 		infoButton.click(infoClickHandler);
-		pvtMsgButton.click(pvtMsgClickHandler);
+		//pvtMsgButton.click(pvtMsgClickHandler);
+
+		$('#msg').on('keyup',function (e) {
+			if(e.keyCode == 13){
+				e.preventDefault();
+				messageClickHandler();
+				$(this).val('');
+			}
+		});
+
+		$('#pvt_msg').on('keyup',function (e) {
+			if(e.keyCode == 13){
+				e.preventDefault();
+				pvtMsgClickHandler();
+				$(this).val('');
+			}
+		});
 
 		$('#msg-log ul').on('click', '.second-user', chatWithSecondUserHandler);
+
+		resizeChatWindow();
 
 	}
 
@@ -353,11 +372,11 @@
 		}
 	}
 
-	function messageClickHandler (callback) {
+	function messageClickHandler () {
+
 		Log("--");
 
 		var msg = $('#msg').val();
-		var msgto = $('#msgto').val();
 
 		var message = {
 		    "command": "pub",
@@ -373,18 +392,10 @@
 		    }
 		};
 
-		if(msgto.length > 0 ){
-			message.params.subs = [];
-			message.params.subs.push({"type" : "userid", "name" : msgto});
-		}
-
 		connection.send(JSON.stringify(message));
 
 		Log("Messaged : " + msg + " to channel " + channel);
 
-		if(callback && typeof(callback) === 'function'){
-			callback();
-		}
 	}
 
 	function pvtMsgClickHandler(){
@@ -465,7 +476,6 @@
 
 	function execClickHandler () {
 		var command = $('#command').val();
-		console.log(command);
 		connection.send(command);
 
 		Log("executed " + command);
@@ -484,6 +494,7 @@
 		var subscribe = {
 		    "command": "sub",
 	        "params": {
+	        	"add": true,
 	        	"subs": [
 	            	{
 	            		"create_when_dne": false,
@@ -500,11 +511,17 @@
 	}
 
 	function chatWithSecondUserHandler (e) {
+
+		$('#pvt-log').css({'visibility' : 'visible'});
+
 		var user2_id = $(this).text();
-		$('#msgto').val(user2_id);
+
+		$('#pvt-log .name').text(user2_id);
 
 		pvtChannel = "user1:" + user_id + "-user2:" + user2_id;
 		pvtChatSubscribePromise(pvtChannel, user2_id);
+
+		resizeChatWindow();
 
 	}
 
@@ -515,6 +532,7 @@
 			var subscribe = {
 			    "command": "sub",
 		        "params": {
+		        	"add": true,
 		        	"subs": [
 		            	{
 		            		"create_when_dne": false,
@@ -614,7 +632,18 @@
 				if(data.type == 'publish'){
 
 					var $li = $('<li><span class="second-user">' + data.publish.id.userid + '</span><span class="content">'+data.publish.value+'</span></li>');
-					chatMsg.append($li);
+
+					if(pvtChannel && data.publish.destination == pvtChannel){
+
+						if( $('#pvt-log').css('visibility') == 'hidden' ){
+							$('#pvt-log').css('visibility', 'visible');
+						}
+						pvtChatMsg.append($li);
+					}
+
+					if(data.publish.destination == channel){
+						chatMsg.append($li);
+					}
 
 				}else if(data.type == 'key_change'){
 
@@ -623,7 +652,7 @@
 					$.each(chat_key_val, function  (key, val) {
 						if( val.user_1 == user_id || val.user_2 == user_id){
 
-							console.log('will sub to ' + val.chat_channel)
+							pvtChannel = val.chat_channel;
 							subscribe(val.chat_channel);
 
 							return;
@@ -657,4 +686,10 @@
 	function Log (msg) {
 		var $li = $('<li>' + msg + '</li>');
 		ul.append($li);
+	}
+
+	function resizeChatWindow() {
+		var ww = $('#log-container .log-instance').length * ( $('#log-container .log-instance').width() + 10 );
+
+		$('#log-container .wrapper').css({width: ww+'px'});
 	}
