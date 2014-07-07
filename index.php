@@ -3,11 +3,16 @@ if(isset($_GET['user_id'])){
 	extract($_GET);
 
 	$data = array(
-		array('user' => '21391347', 'sess' => '3ee434e4d40906b4fa960e0589f00194', 'name' => 'Dhiraj'),
-		array('user' => '24564240', 'sess' => '2720f66583b35f8d9cd9fa112f413643', 'name' => 'Dudi'),
-		array('user' => '27859681', 'sess' => '99e2210b72859ec1043303b20d79574c', 'name' => 'dhiraj-test-1'),
-		array('user' => '27859997', 'sess' => 'a509912c13b7b992cc0b4d7348fa4f1e', 'name' => 'dhiraj-test-2')
+		array('user' => '21391347', 'sess' => 'f136cd9d59a7eee75f1f27b55aa42f9a', 'name' => 'Dhiraj', 'alive' => false),
+		array('user' => '24564240', 'sess' => '2720f66583b35f8d9cd9fa112f413643', 'name' => 'Dudi', 'alive' => false),
+		array('user' => '27859681', 'sess' => '99e2210b72859ec1043303b20d79574c', 'name' => 'dhiraj-test-1', 'alive' => true),
+		array('user' => '27859997', 'sess' => 'a509912c13b7b992cc0b4d7348fa4f1e', 'name' => 'dhiraj-test-2', 'alive' => true),
+		array('user' => '27892361', 'sess' => '2720f66583b35f8d9cd9fa112f413643', 'name' => 'dhiraj-test-3', 'alive' => true),
 	);
+
+	if(!$data[$user_id-1]['alive']){
+		die('Please choose another user id');
+	}
 
 	$user = $data[$user_id-1]['user'];
 	$sess = $data[$user_id-1]['sess'];
@@ -61,19 +66,22 @@ if(isset($_GET['user_id'])){
 	</div>
 	<div id="log-container" class="pull-right">
 		<div class="wrapper">
-			<div id="log" class="log-instance">
+			<div id="log" class="log-instance" data-channel="-1">
 				<div class="top">
 					<div class="heading">
 						<span>Server Log</span>
 						<span class="name"></span>
 						<span><a href="#" class="clear">Clear</a></span>
 					</div>
-					<ul>
-					</ul>
-					<!-- <input type="text" id="log-msg" placeholder="Type here"/> -->
+					<div class="body">
+						<ul>
+						</ul>
+						<!-- <input type="text" id="log-msg" placeholder="Type here"/> -->
+					</div>
 				</div>
 			</div>
-			<div id="msg-log" class="log-instance">
+			<!--
+			<div id="msg-log" class="log-instance" data-channel="0">
 				<div class="bottom">
 					<div class="heading">
 						<span>Chat</span> 
@@ -85,7 +93,7 @@ if(isset($_GET['user_id'])){
 					<input type="text" id="msg" placeholder="Type here"/>
 				</div>
 			</div>
-			
+			<!--
 			<div id="pvt-log" class="log-instance">
 				<div class="bottom">
 					<div class="heading">
@@ -98,12 +106,31 @@ if(isset($_GET['user_id'])){
 					<input type="text" id="pvt_msg" placeholder="Type here"/>
 				</div>
 			</div>
+			-->
 		</div>
 	</div>
+
+	<script id="log-instance-template" type="text/x-jsrender">
+		<div class="log-instance" data-channel={{>pvt_channel}}>
+			<div class="bottom">
+				<div class="heading">
+					<span>Chat: </span>
+					<span class="name">{{>channel_name}}</span>
+					<span><a href="#" class="clear">Clear</a></span>
+				</div>
+				<div class="body">
+					<ul>
+					</ul>
+					<input type="text" class="message-input" placeholder="Type here"/>
+				</div>
+			</div>
+		</div>
+	</script>
 
 	<script type="text/javascript" src="../../jquery.js"></script>
 	<script type="text/javascript" src="../../bootstrap.min.js"></script>
 	<script type="text/javascript" src="https://www.promisejs.org/polyfills/promise-4.0.0.js"></script>
+	<script type="text/javascript" src="../../jsrender.min.js"></script>
 	<script type="text/javascript" src="../../script.js"></script>
 </body>
 </html>

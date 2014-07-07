@@ -35,7 +35,8 @@ body{
 }
 .log-instance ul {
 	overflow: scroll;
-	max-height: 40rem;
+	max-height: 35rem;
+	margin: 10px 0px;
 	/*
 	position: absolute;
 	bottom: 25px;
@@ -43,6 +44,10 @@ body{
 	border: none;
 	width: 100%;
 	*/
+}
+.log-instance .heading:hover {
+	cursor: pointer;
+	cursor: hand;
 }
 .log-instance input {
 	width: 100%;
@@ -56,47 +61,6 @@ body{
 	visibility: hidden;
 }
 
-/*
-#msg-log{
-	border: 1px solid black;
-	margin: 2rem;
-	width: 50%;
-	bottom: 0px;
-	position: absolute;
-	left: 0px;
-	top: 0px;
-	width: 30rem;
-}
-#msg-log input {
-	width: 100%;
-	position: absolute;
-	bottom: 0;
-	padding: 6px;
-}
-#msg-log ul {
-	overflow: scroll;
-	position: absolute;
-	bottom: 25px;
-	top: 25px;
-	border: none;
-	width: 100%;
-}
-#log {
-	border: 1px solid black;
-	margin: 2rem;
-	overflow: scroll;
-	left: 32rem;
-	bottom: 0px;
-	position: absolute;
-	right: 0px;
-	top: 0px;
-	display: none;
-}
-#log span {
-	font-size: 15px;
-	margin: 0px 5px;
-}
-*/
 ul{
 	list-style-type: none;
 }
@@ -104,11 +68,12 @@ li.active{
 	font-weight: bold;
 }
 
-li span.second-user{
-	font-weight: bold;
+li span.user{
 	margin-right: 0.5rem;
+	font-weight: bold;
 }
-li span.second-user:hover{
+
+li span.user.second-user:hover{
 	cursor: hand;
 	cursor: pointer;
 }
